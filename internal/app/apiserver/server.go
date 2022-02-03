@@ -79,12 +79,44 @@ func (s *server) getBlockNumber() (*model.BlockNumber, error) {
 	var record model.BlockNumber
 
 	if err := json.NewDecoder(resp.Body).Decode(&record); err != nil {
-		s.logger.Logf("ERROR decoding BlockNumber %s", err.Error())
+		s.logger.Logf("ERROR decoding eth_blockNumber %s", err.Error())
 		return nil, err
 	}
 
 	s.logger.Logf("DEBUG Block Id: %d", record.Id)
 	s.logger.Logf("DEBUG Block Result: %s", record.Result)
+	return &record, nil
+}
+
+func (s *server) getBlockByNumber(blockNumber string) (*model.BlockInfo, error) {
+	url := fmt.Sprintf("https://api.etherscan.io/api?module=proxy&action=eth_getBlockByNumber&tag=%s&boolean=true&apikey=%s", blockNumber, s.cfg.APIKey)
+	s.logger.Logf("DEBUG Client called: %s", url)
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		s.logger.Logf("DEBUG NewRequest: %s", url)
+		return nil, err
+	}
+
+	resp, err := s.client.Do(req)
+	if err != nil {
+		s.logger.Logf("ERROR %s", err.Error())
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+
+	var record model.BlockInfo
+
+	if err := json.NewDecoder(resp.Body).Decode(&record); err != nil {
+		s.logger.Logf("ERROR decoding eth_getBlockByNumber %s", err.Error())
+		return nil, err
+	}
+
+	for k, v := range record.Result.Transactions {
+		s.logger.Logf("DEBUG transaction %d: %s", k, v)
+	}
+
 	return &record, nil
 }
 
