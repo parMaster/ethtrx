@@ -6,6 +6,7 @@ type Config struct {
 	LogLevel string `toml:"log_level"`
 	MongoURI string `toml:"mongo_uri"`
 	APIKey   string `toml:"etherscan_api_key"`
+	APIURL   string `toml:"etherscan_api_url"`
 }
 
 // NewConfig ...

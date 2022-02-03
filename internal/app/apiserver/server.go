@@ -2,7 +2,6 @@ package apiserver
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/go-pkgz/lgr"
@@ -14,7 +13,7 @@ import (
 type server struct {
 	logger *lgr.Logger
 	router *mux.Router
-	client *http.Client
+	client *Client
 	store  store.Storer
 	cfg    Config
 }
@@ -23,18 +22,13 @@ func newServer(store store.Storer, config Config) *server {
 	s := &server{
 		logger: lgr.New(lgr.Debug, lgr.Option(lgr.Secret(config.APIKey))),
 		router: mux.NewRouter(),
-		client: &http.Client{},
+		client: newClient(config.APIURL, config.APIKey),
 		store:  store,
 		cfg:    config,
 	}
-
 	s.configureRouter()
 
 	return s
-}
-
-func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	s.router.ServeHTTP(w, r)
 }
 
 func (s *server) configureRouter() {
@@ -59,28 +53,14 @@ func (s *server) handleGetBlockNumber() http.HandlerFunc {
 }
 
 func (s *server) getBlockNumber() (*model.BlockNumber, error) {
-	url := fmt.Sprintf("https://api.etherscan.io/api?module=proxy&action=eth_blockNumber&apikey=%s", s.cfg.APIKey)
-	s.logger.Logf("DEBUG Client called: %s", url)
-
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		s.logger.Logf("DEBUG NewRequest: %s", url)
-		return nil, err
-	}
-
-	resp, err := s.client.Do(req)
-	if err != nil {
-		s.logger.Logf("ERROR %s", err.Error())
-		return nil, err
-	}
-
-	defer resp.Body.Close()
-
 	var record model.BlockNumber
 
-	if err := json.NewDecoder(resp.Body).Decode(&record); err != nil {
-		s.logger.Logf("ERROR decoding eth_blockNumber %s", err.Error())
-		return nil, err
+	_, err := s.client.get(map[string]string{
+		"module": "proxy",
+		"action": "eth_blockNumber",
+	}, &record)
+	if err != nil {
+		s.logger.Logf("ERROR calling eth_blockNumber %s", err.Error())
 	}
 
 	s.logger.Logf("DEBUG Block Id: %d", record.Id)
@@ -89,28 +69,16 @@ func (s *server) getBlockNumber() (*model.BlockNumber, error) {
 }
 
 func (s *server) getBlockByNumber(blockNumber string) (*model.BlockInfo, error) {
-	url := fmt.Sprintf("https://api.etherscan.io/api?module=proxy&action=eth_getBlockByNumber&tag=%s&boolean=true&apikey=%s", blockNumber, s.cfg.APIKey)
-	s.logger.Logf("DEBUG Client called: %s", url)
-
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		s.logger.Logf("DEBUG NewRequest: %s", url)
-		return nil, err
-	}
-
-	resp, err := s.client.Do(req)
-	if err != nil {
-		s.logger.Logf("ERROR %s", err.Error())
-		return nil, err
-	}
-
-	defer resp.Body.Close()
-
 	var record model.BlockInfo
 
-	if err := json.NewDecoder(resp.Body).Decode(&record); err != nil {
-		s.logger.Logf("ERROR decoding eth_getBlockByNumber %s", err.Error())
-		return nil, err
+	_, err := s.client.get(map[string]string{
+		"module":  "proxy",
+		"action":  "eth_getBlockByNumber",
+		"boolean": "true",
+		"tag":     blockNumber,
+	}, &record)
+	if err != nil {
+		s.logger.Logf("ERROR calling eth_getBlockByNumber %s", err.Error())
 	}
 
 	for k, v := range record.Result.Transactions {
@@ -118,6 +86,12 @@ func (s *server) getBlockByNumber(blockNumber string) (*model.BlockInfo, error) 
 	}
 
 	return &record, nil
+}
+
+// Maintain compatibility with Handler interface
+
+func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	s.router.ServeHTTP(w, r)
 }
 
 func (s *server) error(w http.ResponseWriter, r *http.Request, code int, err error) {
