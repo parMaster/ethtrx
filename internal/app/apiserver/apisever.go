@@ -12,16 +12,18 @@ import (
 )
 
 func Start(config *Config) error {
-	db, err := newDB(config.MongoURI)
+	client, err := newDB(config.MongoURI)
 	if err != nil {
 		lgr.Fatalf("ERROR connecting to Mongo: %s", err.Error())
 	}
 
 	defer func() {
-		if err = db.Disconnect(context.TODO()); err != nil {
+		if err = client.Disconnect(context.TODO()); err != nil {
 			lgr.Fatalf("ERROR db.Disconnect: %s", err.Error())
 		}
 	}()
+
+	db := client.Database("eth")
 
 	store := mongostore.NewStore(db)
 

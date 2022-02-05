@@ -1,17 +1,18 @@
 package model
 
-type BlockInfo struct {
-	Id     int64 `json:"id"`
-	Result struct {
-		Hash          string   `json:"hash"`
-		Timestamp     string   `json:"timestamp"`
-		GasUsed       string   `json:"gasUsed"`
-		BaseFeePerGas string   `json:"baseFeePerGas"`
-		Transactions  []string `json:"[]transactions"`
-	}
+type Block struct {
+	Hash          string   `json:"hash"`
+	Timestamp     string   `json:"timestamp"`
+	GasUsed       string   `json:"gasUsed"`
+	BaseFeePerGas string   `json:"baseFeePerGas"`
+	Transactions  []string `json:"transactions"`
+}
+type BlockResponse struct {
+	Block `json:"result"`
 }
 
 /*
+{
 	"jsonrpc":"2.0",
 	"id":1,
 	"result":{
@@ -47,4 +48,6 @@ type BlockInfo struct {
 	   "uncles":[
 		  "0x9e8622c7bf742bdeaf96c700c07151c1203edaf17a38ea8315b658c2e6d873cd"
 	   ]
-	}*/
+	}
+}
+*/
