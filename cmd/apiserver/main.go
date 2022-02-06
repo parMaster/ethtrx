@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"os"
 
 	"github.com/BurntSushi/toml"
 	"github.com/go-pkgz/lgr"
@@ -23,11 +22,9 @@ func main() {
 	_, err := toml.DecodeFile(configPath, config)
 	if err != nil {
 		lgr.Fatalf(err.Error())
-		os.Exit(1)
 	}
 
 	if err := apiserver.Start(config); err != nil {
 		lgr.Fatalf("Can't start logserver %s", err.Error())
-		os.Exit(1)
 	}
 }

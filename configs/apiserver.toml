@@ -1,6 +1,8 @@
 bind_addr = ":8080"
 log_level = "debug"
 mongo_uri = "mongodb://localhost:27018/?maxPoolSize=20&w=majority"
-etherscan_api_key = "secret"
+etherscan_api_key = ""
 etherscan_api_url = "https://api.etherscan.io/api"
+daemon_mode = false
+load_transactions = 10
 session_key = ""

@@ -14,7 +14,7 @@ import (
 func Start(config *Config) error {
 	client, err := newDB(config.MongoURI)
 	if err != nil {
-		lgr.Fatalf("ERROR connecting to Mongo: %s", err.Error())
+		lgr.Fatalf("FATAL Failed to connect to Mongo:\n%s", err.Error())
 	}
 
 	defer func() {
