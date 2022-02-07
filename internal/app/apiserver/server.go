@@ -143,7 +143,7 @@ func (s *server) handleGetTxList() http.HandlerFunc {
 	}
 
 	type response struct {
-		Transactions []model.Transaction `json:"transactions,omitempty"`
+		Transactions []model.Transaction `json:"transactions"`
 		Error        string              `json:"error,omitempty"`
 	}
 
@@ -223,10 +223,6 @@ func (s *server) handleGetTxList() http.HandlerFunc {
 		if err != nil {
 			s.logger.Logf("ERROR finding transactions: %s", err.Error())
 			s.respond(w, r, http.StatusInternalServerError, nil)
-			return
-		}
-		if len(transactions) == 0 {
-			s.respond(w, r, http.StatusNoContent, nil)
 			return
 		}
 
