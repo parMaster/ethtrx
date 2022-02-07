@@ -6,6 +6,7 @@ type Transaction struct {
 	BlockNumber   string `json:"blockNumber" bson:"blockNumber"`
 	BlockHeight   uint64 `json:"blockHeight" bson:"blockHeight"`
 	BlockTime     string `json:"blockTime,omitempty" bson:"blockTime"`
+	BlockDate     string `json:"blockDate,omitempty" bson:"blockDate"`
 	From          string `json:"from" bson:"from"`
 	To            string `json:"to" bson:"to"`
 	Value         string `json:"value" bson:"value"`

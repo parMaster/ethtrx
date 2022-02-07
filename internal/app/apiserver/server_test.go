@@ -126,9 +126,21 @@ func Test_Conversion(t *testing.T) {
 	conversionFactor := new(big.Float).SetUint64(1000000000000000000)
 
 	bigFloat := vTogether.Quo(vTogether, conversionFactor)
-	fmt.Sprintf("%2.8f", bigFloat)
+
+	assert.Equal(t, "99.994750000000000000", fmt.Sprintf("%3.18f", bigFloat))
 
 	conv := BigHexToStr()
 
-	fmt.Println(conv(bigHex))
+	assert.Equal(t, "99.99475", conv(bigHex))
+
+	// Block Date -> Transactions Date
+
+	trxTimestamp := "0x61fd5bd7"
+	ts := hexutil.MustDecodeUint64(trxTimestamp)
+	assert.Equal(t, "1643994071", fmt.Sprintf("%d", ts))
+	tm := time.Unix(int64(ts), 0)
+	assert.Equal(t, time.Time(time.Date(2022, time.February, 4, 19, 1, 11, 0, time.Local)), tm)
+
+	assert.Equal(t, "2022-02-04", tm.Format("2006-01-02"))
+
 }

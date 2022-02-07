@@ -68,8 +68,12 @@ func (s *server) startUp(offset int) {
 		}
 		s.logger.Logf("INFO Starting with block: %s", startingBlock.Number)
 
+		tm := time.Unix(int64(hexutil.MustDecodeUint64(startingBlock.Timestamp)), 0).In(time.UTC)
+		blockDateStr := tm.Format("2006-01-02")
+
 		for _, trx := range startingBlock.Transactions {
 			trx.BlockTime = startingBlock.Timestamp
+			trx.BlockDate = blockDateStr
 			trx.BlockHeight = hexutil.MustDecodeUint64(trx.BlockNumber)
 			s.store.Create(&trx)
 		}
@@ -106,8 +110,12 @@ func (s *server) catchUp() {
 				continue
 			}
 
+			tm := time.Unix(int64(hexutil.MustDecodeUint64(block.Timestamp)), 0).In(time.UTC)
+			blockDateStr := tm.Format("2006-01-02")
+
 			s.logger.Logf("INFO Saving new block %d (%s)", i, hexutil.EncodeUint64(i))
 			for _, trx := range block.Transactions {
+				trx.BlockDate = blockDateStr
 				trx.BlockTime = block.Timestamp
 				trx.BlockHeight = hexutil.MustDecodeUint64(trx.BlockNumber)
 				s.store.Create(&trx)
@@ -200,7 +208,15 @@ func (s *server) handleGetTxList() http.HandlerFunc {
 		}
 
 		if req.BlockDate != nil {
-			// filter["blockDate"] = Validate(*req.BlockDate)
+
+			var tm, err = time.Parse("2006-01-02", *req.BlockDate)
+			if err != nil {
+				response.Error = fmt.Sprintf("Failed to parse 'blockdate' parameter: %s", err.Error())
+				s.respond(w, r, http.StatusBadRequest, response)
+				return
+			}
+
+			filter["blockDate"] = tm.Format("2006-01-02")
 		}
 
 		transactions, err := s.store.FindTx(filter, page, limit)
