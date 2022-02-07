@@ -17,6 +17,7 @@ func init() {
 }
 
 func main() {
+	flag.Parse()
 
 	config := apiserver.NewConfig()
 	_, err := toml.DecodeFile(configPath, config)
