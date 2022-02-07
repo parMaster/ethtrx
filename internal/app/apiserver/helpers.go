@@ -13,6 +13,9 @@ func BigHexToStr() func(string) string {
 	conversionFactor := new(big.Float).SetUint64(1000000000000000000)
 
 	return func(hexValue string) string {
+		if hexValue == "0x0" {
+			return "0"
+		}
 		vTogether := new(big.Float).SetInt(hexutil.MustDecodeBig(hexValue))
 		bigFloat := vTogether.Quo(vTogether, conversionFactor)
 		return strings.TrimRight(fmt.Sprintf("%3.18f", bigFloat), "0")
