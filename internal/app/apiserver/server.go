@@ -70,6 +70,7 @@ func (s *server) startUp(offset int) {
 
 		for _, trx := range startingBlock.Transactions {
 			trx.BlockTime = startingBlock.Timestamp
+			trx.BlockHeight = hexutil.MustDecodeUint64(trx.BlockNumber)
 			s.store.Create(&trx)
 		}
 	}
@@ -108,6 +109,7 @@ func (s *server) catchUp() {
 			s.logger.Logf("INFO Saving new block %d (%s)", i, hexutil.EncodeUint64(i))
 			for _, trx := range block.Transactions {
 				trx.BlockTime = block.Timestamp
+				trx.BlockHeight = hexutil.MustDecodeUint64(trx.BlockNumber)
 				s.store.Create(&trx)
 			}
 			time.Sleep(200 * time.Millisecond)
@@ -120,6 +122,7 @@ func (s *server) configureRouter() {
 	s.router.HandleFunc("/getTxList", s.handleGetTxList()).Methods("POST")
 }
 
+// Handles getTxList endpoint
 func (s *server) handleGetTxList() http.HandlerFunc {
 	type request struct {
 		TxHash      *string `json:"txhash,omitempty"`
@@ -139,16 +142,20 @@ func (s *server) handleGetTxList() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		req := &request{}
-		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
-			s.error(w, r, http.StatusBadRequest, err)
+		response := &response{}
+
+		s.logger.Logf("%+v", r.Body)
+
+		if err := json.NewDecoder(r.Body).Decode(req); err != nil && err.Error() != "EOF" {
+			response.Error = fmt.Sprintf("Error decoding request: %s", err.Error())
+			s.respond(w, r, http.StatusBadRequest, response)
 			return
 		}
 
 		var transactions []model.Transaction
-		response := &response{}
 
 		filter := bson.M{}
-		if req.TxHash != nil {
+		if req.TxHash != nil && len(*req.TxHash) > 0 {
 			_, err := hexutil.Decode(*req.TxHash)
 			if err != nil {
 				response.Error = fmt.Sprintf("Invalid 'txhash' parameter: %s", err.Error())
@@ -186,8 +193,12 @@ func (s *server) handleGetTxList() http.HandlerFunc {
 			int64(*req.Page) >= 0 &&
 			int64(*req.Limit) > 0 {
 
-			filter["page"] = int64(*req.Page)
-			filter["limit"] = int64(*req.Limit)
+			page = int64(*req.Page)
+			limit = int64(*req.Limit)
+		} else {
+			// Default values - page = 1, limit = 10
+			page = int64(1)
+			limit = int64(10)
 		}
 
 		if req.BlockDate != nil {
@@ -212,23 +223,23 @@ func (s *server) handleGetTxList() http.HandlerFunc {
 		}
 		mostRecentBlockNumber := hexutil.MustDecodeUint64(mostRecentBlock)
 
-		// convFactor := new(big.Float).SetUint64(1000000000000000000)
-		// bigVal := new(big.Float)
-
-		// hexutil.Big
-
+		// Preparing output data
+		conv := BigHexToStr()
 		for k, v := range transactions {
+
+			// Calculating Confirmations instead of storing and updating
+			transactions[k].Confirmations = mostRecentBlockNumber - hexutil.MustDecodeUint64(v.BlockNumber)
+
+			// Same with human-readable values: providing both fields - raw and string with human-readable float
+			transactions[k].ValueNumber = conv(v.Value)
 			transactions[k].BlockHeight = hexutil.MustDecodeUint64(v.BlockNumber)
-			transactions[k].Confirmations = mostRecentBlockNumber - hexutil.MustDecodeUint64(v.BlockNumber)
-			transactions[k].Confirmations = mostRecentBlockNumber - hexutil.MustDecodeUint64(v.BlockNumber)
-			// s.logger.Logf("value: %s", v.Value)
-			// transactions[k].ValueNumber = fmt.Sprintf("%8.7f", bigVal.Quo(bigVal.SetUint64(hexutil.MustDecodeUint64(v.Value)), convFactor))
 		}
 
 		s.respond(w, r, http.StatusOK, transactions)
 	}
 }
 
+// Returns current Eth block number (hex string)
 func (s *server) getCurrentBlockNumber() (string, error) {
 
 	type BlockNumber struct {
@@ -249,7 +260,9 @@ func (s *server) getCurrentBlockNumber() (string, error) {
 	return record.Result, nil
 }
 
+// Returns information about a transaction by hash
 func (s *server) getTxByHash(txhash string, saveUpdate bool) (*model.TransactionResponse, error) {
+
 	var record model.TransactionResponse
 
 	_, err := s.client.get(map[string]string{
