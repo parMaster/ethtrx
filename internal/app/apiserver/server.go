@@ -144,8 +144,6 @@ func (s *server) handleGetTxList() http.HandlerFunc {
 		req := &request{}
 		response := &response{}
 
-		s.logger.Logf("%+v", r.Body)
-
 		if err := json.NewDecoder(r.Body).Decode(req); err != nil && err.Error() != "EOF" {
 			response.Error = fmt.Sprintf("Error decoding request: %s", err.Error())
 			s.respond(w, r, http.StatusBadRequest, response)
@@ -235,7 +233,8 @@ func (s *server) handleGetTxList() http.HandlerFunc {
 			transactions[k].BlockHeight = hexutil.MustDecodeUint64(v.BlockNumber)
 		}
 
-		s.respond(w, r, http.StatusOK, transactions)
+		response.Transactions = transactions
+		s.respond(w, r, http.StatusOK, response)
 	}
 }
 
@@ -319,6 +318,8 @@ func (s *server) error(w http.ResponseWriter, r *http.Request, code int, err err
 func (s *server) respond(w http.ResponseWriter, r *http.Request, code int, data interface{}) {
 	w.WriteHeader(code)
 	if data != nil {
-		json.NewEncoder(w).Encode(data)
+		enc := json.NewEncoder(w)
+		enc.SetIndent("", "    ")
+		enc.Encode(data)
 	}
 }
