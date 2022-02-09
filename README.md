@@ -1,12 +1,6 @@
 ## Ethereum Transactions Explorer
 Educational Project - Junior Golang Developer Test Problem
 
-## Sandboxed demo
-
-Demo server is deployed, API endpoint is available at `http://cdns.com.ua:8088/getTxList`:
-
-`curl -X POST http://cdns.com.ua:8088/getTxList -H 'Content-Type: application/json' -d '{\"date\":\"2022-02-07\"}'`
-
 ## Prerequisites
 - Access to Mongo (database=etc, collection=transactions). Sandboxed demo is running docker container with Mongo 4.2 like this:
 	`docker run --name mongodb -p27018:27017 mongo:4.2`
